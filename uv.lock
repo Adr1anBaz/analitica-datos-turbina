@@ -3,7 +3,7 @@ revision = 3
 requires-python = "==3.12.*"
 
 [[package]]
-name = "analitica-datos-scania-aps"
+name = "analitica-datos-turbina"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

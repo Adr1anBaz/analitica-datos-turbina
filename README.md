@@ -1,115 +1,118 @@
-# Scania APS · Proyecto de Analítica de Datos
+# Emisiones de una turbina de gas · Analítica de Datos
 
-Proyecto académico de **clasificación de fallas relacionadas con el sistema neumático APS** en camiones Scania, con futura evaluación sensible al costo de los errores.
+Proyecto académico con **mediciones reales e interpretables** de operación y emisiones de una turbina de gas. Ruta candidata: estimar la concentración de NOx mediante regresión y evaluar la utilidad de las mediciones operativas frente a usar sólo variables ambientales.
 
-**Estado actual: únicamente setup y descarga.** No hay modelos entrenados, imputación, balanceo, selección de variables ni resultados predictivos.
+**Estado actual:** entorno reproducible, descarga verificada y notebook inicial de carga. No se han limpiado datos, convertido unidades, generado gráficas, separado X/y ni entrenado modelos.
 
 ## Requisitos
 
-- Git y conexión a internet para clonar, instalar y descargar los datos.
-- [uv](https://docs.astral.sh/uv/getting-started/installation/), gestor del entorno Python. En macOS con Homebrew: `brew install uv`; en Windows: `winget install --id=astral-sh.uv -e`.
-- Acceso al repositorio privado. El propietario debe invitar a cada integrante desde **Settings → Collaborators**. No basta con recibir el enlace.
+- Git, acceso al repositorio privado y conexión para instalar y descargar.
+- [uv](https://docs.astral.sh/uv/getting-started/installation/). En macOS con Homebrew: `brew install uv`. En Windows: `winget install --id=astral-sh.uv -e`.
+- Python **3.12.12**, fijado en `.python-version`; uv puede descargarlo si falta. No hace falta instalar paquetes globales ni activar manualmente `.venv`.
 
-El proyecto fija **Python 3.12.12** en `.python-version`. `uv sync --locked` puede descargarlo si no está instalado. Las dependencias exactas están en `uv.lock`; no hace falta instalar Python o paquetes globalmente ni activar manualmente `.venv`.
+Cada integrante necesita aceptar una invitación desde **Settings → Collaborators**. El enlace solo no concede acceso al repositorio privado.
 
-## Arranque desde cero
-
-En Terminal, PowerShell o la terminal de VS Code, ejecutar cada comando desde la carpeta del proyecto:
+## Instalar, descargar y verificar
 
 ```sh
-git clone git@github.com:Adr1anBaz/analitica-datos-scania-aps.git
-cd analitica-datos-scania-aps
+git clone git@github.com:Adr1anBaz/analitica-datos-turbina.git
+cd analitica-datos-turbina
 uv sync --locked
 uv run python -m scripts.descargar_datos
 uv run python -m scripts.verificar_setup
 uv run python -m unittest discover -s tests -v
 ```
 
-El clon por SSH requiere una llave autorizada en la cuenta de GitHub con acceso. Como alternativa, clonar con la autenticación HTTPS de tu cliente Git:
+El clon SSH requiere una llave autorizada. Alternativa con la autenticación HTTPS de tu cliente Git:
 
 ```sh
-git clone https://github.com/Adr1anBaz/analitica-datos-scania-aps.git
+git clone https://github.com/Adr1anBaz/analitica-datos-turbina.git
 ```
 
-No pongas tokens, contraseñas o llaves privadas en comandos guardados, archivos del proyecto o commits.
+No guardar credenciales o llaves privadas en el proyecto. `uv.lock` fija las versiones exactas de pandas, NumPy, matplotlib, seaborn, scikit-learn, JupyterLab, ipykernel y sus dependencias.
 
-### Qué debe pasar
+## Abrir el archivo de trabajo
 
-1. `uv sync --locked` crea `.venv/` y usa las versiones de `uv.lock` sin modificarlo.
-2. La descarga obtiene los **tres originales** de UCI y los guarda en `data/raw/`. Verifica SHA-256 del ZIP y de cada archivo.
-3. La verificación importa las siete dependencias principales, comprueba el kernel de Jupyter y valida archivos, columnas y etiquetas. No ajusta ningún modelo.
-4. Las pruebas unitarias deben terminar en `OK`.
-
-El ZIP descargado tiene aproximadamente **56.6 MB**; los originales suman aproximadamente **56.6 MB**. Además, reservar espacio para el entorno y sus dependencias. El descargador lee el ZIP en memoria y no conserva una copia adicional.
-
-## Abrir Jupyter
-
-Desde la raíz del repositorio:
+Desde la raíz del proyecto:
 
 ```sh
 uv run jupyter lab
 ```
 
-Se abrirá JupyterLab en el navegador. Si no abre automáticamente, usar la URL que imprime la terminal. Dentro de `notebooks/`, crear un notebook con **Python 3 (ipykernel)**. Mantener esa terminal abierta; para detener el servidor, usar `Ctrl+C` y confirmar si lo solicita. No compartir la URL que contiene el token de sesión.
+Abrir **`notebooks/01_carga_y_variables.ipynb`** con el kernel **Python 3 (ipykernel)**. Ejecutar de arriba hacia abajo con `Shift+Enter` o **Run → Run All Cells**.
 
-No se instala un kernel global: Jupyter y Python se ejecutan en `.venv/` mediante `uv run`. En VS Code también puedes seleccionar el intérprete `.venv` del proyecto (en Windows, `.venv\Scripts\python.exe`).
+El notebook:
 
-## Archivos y datos
+1. Importa las librerías habituales de clase.
+2. Carga cada CSV con `pd.read_csv` y añade el año del archivo.
+3. Apila los cinco años con `pd.concat`, sin reordenar ni eliminar observaciones.
+4. Deja un único DataFrame **`df` de 36,733 filas y 12 columnas**: once variables originales y `anio` como procedencia.
+5. Muestra sus dimensiones, primeras filas y lista de columnas, con un diccionario de significados y dudas documentales.
+
+No se guarda un CSV unido: por ahora trabajamos con `df` en memoria y conservamos los originales intactos. Unir filas no obliga a mezclarlas aleatoriamente para evaluar modelos después.
+
+Jupyter se ejecuta dentro de `.venv` gracias a `uv run`. Si no abre el navegador, usar la URL de la terminal; no compartir su token de sesión. Para detenerlo, `Ctrl+C` y confirmar si lo solicita. En VS Code, seleccionar el intérprete `.venv` del proyecto.
+
+## Datos
+
+| Archivo original | Filas | Columnas originales |
+|---|---:|---:|
+| `gt_2011.csv` | 7,411 | 11 |
+| `gt_2012.csv` | 7,628 | 11 |
+| `gt_2013.csv` | 7,152 | 11 |
+| `gt_2014.csv` | 7,158 | 11 |
+| `gt_2015.csv` | 7,384 | 11 |
+| **Total** | **36,733** | **11** |
+
+Columnas originales: `AT`, `AP`, `AH`, `AFDP`, `GTEP`, `TIT`, `TAT`, `TEY`, `CDP`, `CO`, `NOX`. Ver [diccionario y sentido de ingeniería](docs/VARIABLES.md).
+
+Cada registro corresponde a datos agregados de una hora de operación de una instalación en Turquía, no a una turbina distinta. Los archivos no publican fechas completas por fila. El año se conoce por el nombre del archivo, no por una medición adicional.
+
+**Unidades pendientes de aclaración:** CDP presenta una contradicción entre tabla y esquema del artículo. TEY se conserva como producción energética con la unidad publicada, sin asumir que sea potencia o eficiencia. No corregimos números por suposición; ambas cuestiones se detallan en el diccionario.
+
+## Fuente e integridad
+
+- [UCI: Gas Turbine CO and NOx Emission Data Set](https://archive.ics.uci.edu/dataset/551/gas+turbine+co+and+nox+emission+data+set).
+- [DOI del dataset: 10.24432/C5WC95](https://doi.org/10.24432/C5WC95).
+- [Artículo original: Kaya, Tüfekci y Uzun (2019)](https://journals.tubitak.gov.tr/elektrik/vol27/iss6/53), [DOI 10.3906/elk-1807-87](https://doi.org/10.3906/elk-1807-87).
+- Licencia publicada por UCI: **CC BY 4.0**; citar y atribuir la fuente al utilizar los datos.
+- ZIP: aproximadamente **1.09 MB**; los cinco CSV suman aproximadamente **2.78 MB**. Reservar espacio adicional para el entorno Python.
+- SHA-256 del ZIP: `55fdb1acc25f05bd9c77aac285c424e9154ffb0dbf1bbadb56b69a1142231295`.
+
+El script verifica el ZIP y cada CSV con hashes fijados en `scripts/datos.py`. Comprueba encabezados, conteos y valores numéricos finitos. **No cambia unidades ni rellena valores.** Volver a ejecutar con los cinco originales presentes sólo verifica; no descarga de nuevo. Un archivo existente diferente no se sobrescribe.
+
+## Estructura
 
 ```text
 .
-├── pyproject.toml             # Dependencias directas y versión de Python
-├── uv.lock                    # Versiones exactas resueltas
-├── .python-version
+├── pyproject.toml / uv.lock / .python-version
 ├── scripts/
-│   ├── datos.py               # Fuente, hashes y validaciones
-│   ├── descargar_datos.py     # Descarga los originales
-│   └── verificar_setup.py     # Comprueba entorno y datos
+│   ├── datos.py
+│   ├── descargar_datos.py
+│   └── verificar_setup.py
 ├── tests/test_setup.py
-├── notebooks/                 # Reservado para trabajo futuro
-├── data/raw/                  # Originales locales, fuera de Git
-├── data/processed/            # Reservado; no contiene datos transformados
-├── outputs/                   # Reservado para resultados futuros
-└── docs/plans/
+├── notebooks/01_carga_y_variables.ipynb
+├── docs/VARIABLES.md
+├── docs/plans/
+├── data/raw/          # Cinco originales locales, fuera de Git
+├── data/processed/    # Reservado; sin datos transformados
+└── outputs/           # Reservado; sin resultados de modelos
 ```
 
-| Original | Filas | Columnas | Etiquetas |
-|---|---:|---:|---|
-| `aps_failure_training_set.csv` | 60,000 | 171 | 59,000 `neg`, 1,000 `pos` |
-| `aps_failure_test_set.csv` | 16,000 | 171 | 15,625 `neg`, 375 `pos` |
-| `aps_failure_description.txt` | — | — | Descripción y condiciones originales |
+Git versiona código, notebook sin salidas guardadas, documentación, pruebas y configuración. Excluye los CSV, `.venv`, resultados, cachés y secretos. Cada integrante descarga sus originales.
 
-Las 171 columnas incluyen **170 predictores y `class`**. Los archivos CSV llevan un preámbulo antes del encabezado; no leerlos como si su primera línea fuera el nombre de las columnas. El código de verificación localiza la línea que empieza por `class,`. `na` representa un faltante; los originales no se modifican.
+## Solución de problemas
 
-**`pos`** identifica fallas del componente APS; **`neg`** corresponde a fallas no relacionadas con APS, no necesariamente vehículos sanos. Las variables están anonimizadas: no atribuirles significados físicos no documentados. El dataset no fija un horizonte como «fallará en siete días».
+- **`uv` no se reconoce:** instalarlo y abrir otra terminal.
+- **Repositorio no encontrado:** revisar cuenta autenticada, invitación aceptada y acceso SSH/HTTPS.
+- **Falta un CSV:** ejecutar `uv run python -m scripts.descargar_datos` desde la raíz.
+- **Hash inesperado:** detenerse y revisar si cambió la fuente o el archivo local. No modificar hashes para ocultar el error ni sobrescribir trabajo sin revisarlo.
+- **Error de conexión:** comprobar acceso a UCI y reintentar; sólo se escriben originales tras verificar el contenido descargado.
+- **Jupyter usa otro entorno:** detenerlo y arrancar con `uv run jupyter lab` desde esta carpeta.
+- **Lock incompatible:** usar `pyproject.toml` y `uv.lock` del mismo commit; no regenerarlo sin revisar cambios.
 
-## Fuente, integridad y uso
+## Límites y siguiente etapa
 
-- [Ficha original UCI](https://archive.ics.uci.edu/dataset/421/aps+failure+at+scania+trucks).
-- [DOI: 10.24432/C51S51](https://doi.org/10.24432/C51S51).
-- Descarga: `https://archive.ics.uci.edu/static/public/421/aps+failure+at+scania+trucks.zip`.
-- SHA-256 del ZIP: `5504d0402f54faaf97ac0ca085a621645763f5cfea2eb29c592b057d43d4db89`.
-- Los hashes de cada original están fijados en `scripts/datos.py`.
+El primer trabajo es entender las variables. Más adelante se elegirá una respuesta principal y un protocolo de regresión. La partición temporal publicada es 2011–2012 para entrenamiento, 2013 para validación y 2014–2015 para prueba; aún no está implementada.
 
-El archivo original de descripción incluye condiciones GPL v3 o posterior, mientras que la ficha actual de UCI muestra CC BY 4.0. Conservamos la descripción sin alterarla y no redistribuimos los CSV en este repositorio. Consultar las condiciones de la fuente antes de redistribuir; este setup no cambia ni resuelve esa discrepancia de licencias.
-
-## Qué se sube a GitHub
-
-Se versionan código, documentación, pruebas, configuración y `uv.lock`. **No se suben** `.venv/`, datos originales o procesados, resultados locales, cachés ni secretos. Cada integrante descarga sus propios originales con el comando documentado.
-
-Conservar la separación original de desarrollo y prueba. La prueba se reserva para la futura evaluación: no utilizarla para elegir imputación, variables, umbral o hiperparámetros. La verificación actual sólo confirma integridad y estructura, no explora relaciones predictivas.
-
-## Problemas frecuentes
-
-- **`uv` no se reconoce:** instalar uv y abrir una terminal nueva.
-- **El clon dice `Repository not found`:** comprobar invitación aceptada, cuenta autenticada y acceso SSH/HTTPS; el repo es privado.
-- **Faltan datos:** ejecutar `uv run python -m scripts.descargar_datos` desde la raíz.
-- **Hash inesperado:** detenerse. Puede haber un archivo local modificado o un cambio en la fuente. El script no sobrescribe archivos existentes diferentes; revisar y respaldar antes de decidir qué hacer. No cambiar los hashes para ocultar el error.
-- **Ya descargué los datos:** volver a ejecutar es seguro; verifica los originales existentes y no vuelve a descargarlos si están completos.
-- **Error de conexión:** comprobar acceso a UCI y reintentar. Los archivos finales sólo se escriben después de verificar el ZIP y sus contenidos.
-- **Jupyter usa otro Python:** detenerlo y arrancar con `uv run jupyter lab` desde esta carpeta, no con un comando global.
-- **`uv.lock` no coincide:** no regenerarlo sin revisar cambios; usar el archivo del commit correspondiente junto con `pyproject.toml`.
-
-## Próxima etapa (no implementada)
-
-Definir la pregunta principal y protocolo de evaluación, y después comenzar la exploración únicamente con desarrollo. La idea candidata es comparar decisiones de revisión usando la penalización del desafío: **10 × falsas alarmas + 500 × fallas APS omitidas**. Es una escala del benchmark, no un costo en pesos ni un ahorro demostrado.
+Estimar emisiones de la misma hora no es pronosticar el futuro, demostrar causalidad ni sustituir legalmente un analizador certificado. No se promete precisión antes de entrenar y evaluar.

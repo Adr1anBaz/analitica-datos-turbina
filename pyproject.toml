@@ -1,7 +1,7 @@
 [project]
-name = "analitica-datos-scania-aps"
+name = "analitica-datos-turbina"
 version = "0.1.0"
-description = "Setup reproducible del proyecto académico de clasificación Scania APS."
+description = "Proyecto académico de estimación de emisiones de una turbina de gas."
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "pandas>=2.2,<3",
