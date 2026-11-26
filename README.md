@@ -1,8 +1,33 @@
 # Emisiones de una turbina de gas · Analítica de Datos
 
-Proyecto académico con **mediciones reales e interpretables** de operación y emisiones de una turbina de gas. Ruta candidata: estimar la concentración de NOx mediante regresión y evaluar la utilidad de las mediciones operativas frente a usar sólo variables ambientales.
+Proyecto académico de regresión para estimar la concentración de NOX de una turbina de gas a partir de sus condiciones ambientales y operativas de la misma hora.
 
-**Estado actual:** entorno reproducible, descarga verificada y notebook inicial de carga. No se han limpiado datos, convertido unidades, generado gráficas, separado X/y ni entrenado modelos.
+## Objetivo y avance
+
+¿Qué tan bien podemos estimar la concentración de NOX usando las condiciones ambientales y operativas de la turbina, y cómo funciona el modelo en años posteriores a los utilizados para entrenarlo?
+
+Cada fila contiene mediciones de una hora. El modelo aprenderá a relacionar esas condiciones con el NOX medido. Los años organizan la evaluación: 2011 y 2012 para aprender, 2013 para comparar modelos y ajustes, y 2014 y 2015 para la prueba final. `anio` indica procedencia y no se usará como predictor. Estimar la emisión de la misma hora no equivale a pronosticar la siguiente; los CSV tampoco incluyen fechas completas por fila para justificar un horizonte horario.
+
+### Realizado
+
+- [x] Entorno reproducible, pruebas de integridad y cinco CSV originales completos en el repositorio.
+- [x] Unión en `df`: 36,733 filas y 12 columnas, incluyendo `anio`.
+- [x] Diccionario de variables y advertencias sobre las unidades de CDP y TEY.
+- [x] Revisión de tipos y faltantes: once columnas `float64`, `anio` entero y ningún faltante reconocido por pandas.
+- [x] Subconjunto exploratorio de entrenamiento: 2011 y 2012, con 15,039 registros.
+- [x] Boxplots, histogramas y comparación de esos dos años.
+- [x] Matriz de correlación y dispersión de AT frente a NOX, con interpretación escrita.
+
+AT presenta una correlación de aproximadamente −0.60 con NOX. GTEP, TEY y CDP están fuertemente correlacionadas entre sí, lo que requiere revisar su posible redundancia al preparar una regresión lineal. Estas asociaciones no demuestran causalidad ni justifican eliminar columnas automáticamente.
+
+### Pendiente
+
+- [ ] Definir las entradas `X` y la respuesta `y`, comparando condiciones ambientales con ambientales más operativas, sin incluir CO como entrada.
+- [ ] Construir explícitamente los conjuntos de entrenamiento, validación y prueba por año.
+- [ ] Decidir el escalado según el modelo y los ejemplos del profesor; ajustarlo sólo con entrenamiento si corresponde.
+- [ ] Entrenar, comparar y evaluar los modelos. Todavía no hay métricas de desempeño.
+
+Conservamos los valores y unidades originales: no hemos imputado, eliminado observaciones ni aplicado transformaciones. Las gráficas usan el entrenamiento; los años posteriores permanecen reservados para evaluación. El código sigue las herramientas de los ejemplos del profesor: pandas, `sns.histplot`, `sns.boxplot`, `sns.heatmap` y `sns.scatterplot`.
 
 ## Requisitos
 
@@ -12,13 +37,12 @@ Proyecto académico con **mediciones reales e interpretables** de operación y e
 
 Cada integrante necesita aceptar una invitación desde **Settings → Collaborators**. El enlace solo no concede acceso al repositorio privado.
 
-## Instalar, descargar y verificar
+## Instalar y verificar
 
 ```sh
 git clone git@github.com:Adr1anBaz/analitica-datos-turbina.git
 cd analitica-datos-turbina
 uv sync --locked
-uv run python -m scripts.descargar_datos
 uv run python -m scripts.verificar_setup
 uv run python -m unittest discover -s tests -v
 ```
@@ -30,6 +54,8 @@ git clone https://github.com/Adr1anBaz/analitica-datos-turbina.git
 ```
 
 No guardar credenciales o llaves privadas en el proyecto. `uv.lock` fija las versiones exactas de pandas, NumPy, matplotlib, seaborn, scikit-learn, JupyterLab, ipykernel y sus dependencias.
+
+Los cinco CSV ya vienen incluidos al clonar. El comando `uv run python -m scripts.descargar_datos` queda disponible para recuperarlos desde UCI si faltan, o para verificar los existentes sin descargarlos de nuevo.
 
 ## Abrir el archivo de trabajo
 
@@ -48,6 +74,9 @@ El notebook:
 3. Apila los cinco años con `pd.concat`, sin reordenar ni eliminar observaciones.
 4. Deja un único DataFrame **`df` de 36,733 filas y 12 columnas**: once variables originales y `anio` como procedencia.
 5. Muestra sus dimensiones, primeras filas y lista de columnas, con un diccionario de significados y dudas documentales.
+6. Revisa tipos y faltantes, y explora 2011 y 2012 con gráficas y correlaciones comentadas.
+
+El notebook incluye las salidas y figuras de una ejecución completa para poder revisar el avance en GitHub. Se puede volver a ejecutar desde cero; las salidas se regeneran con los originales incluidos.
 
 No se guarda un CSV unido: por ahora trabajamos con `df` en memoria y conservamos los originales intactos. Unir filas no obliga a mezclarlas aleatoriamente para evaluar modelos después.
 
@@ -75,7 +104,7 @@ Cada registro corresponde a datos agregados de una hora de operación de una ins
 - [UCI: Gas Turbine CO and NOx Emission Data Set](https://archive.ics.uci.edu/dataset/551/gas+turbine+co+and+nox+emission+data+set).
 - [DOI del dataset: 10.24432/C5WC95](https://doi.org/10.24432/C5WC95).
 - [Artículo original: Kaya, Tüfekci y Uzun (2019)](https://journals.tubitak.gov.tr/elektrik/vol27/iss6/53), [DOI 10.3906/elk-1807-87](https://doi.org/10.3906/elk-1807-87).
-- Licencia publicada por UCI: **CC BY 4.0**; citar y atribuir la fuente al utilizar los datos.
+- Licencia publicada por UCI: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); citar y atribuir la fuente al utilizar los datos. Ver [atribución de los CSV](data/README.md).
 - ZIP: aproximadamente **1.09 MB**; los cinco CSV suman aproximadamente **2.78 MB**. Reservar espacio adicional para el entorno Python.
 - SHA-256 del ZIP: `55fdb1acc25f05bd9c77aac285c424e9154ffb0dbf1bbadb56b69a1142231295`.
 
@@ -94,12 +123,13 @@ El script verifica el ZIP y cada CSV con hashes fijados en `scripts/datos.py`. C
 ├── notebooks/01_carga_y_variables.ipynb
 ├── docs/VARIABLES.md
 ├── docs/plans/
-├── data/raw/          # Cinco originales locales, fuera de Git
+├── data/README.md     # Fuente, licencia y atribución
+├── data/raw/          # Cinco CSV originales completos, incluidos en Git
 ├── data/processed/    # Reservado; sin datos transformados
 └── outputs/           # Reservado; sin resultados de modelos
 ```
 
-Git versiona código, notebook sin salidas guardadas, documentación, pruebas y configuración. Excluye los CSV, `.venv`, resultados, cachés y secretos. Cada integrante descarga sus originales.
+Git versiona código, notebook con sus figuras y tablas, documentación, pruebas, configuración y los cinco CSV originales. Excluye `.venv`, datos procesados, resultados externos al notebook, cachés y secretos.
 
 ## Solución de problemas
 
@@ -113,6 +143,6 @@ Git versiona código, notebook sin salidas guardadas, documentación, pruebas y 
 
 ## Límites y siguiente etapa
 
-El primer trabajo es entender las variables. Más adelante se elegirá una respuesta principal y un protocolo de regresión. La partición temporal publicada es 2011–2012 para entrenamiento, 2013 para validación y 2014–2015 para prueba; aún no está implementada.
+La respuesta propuesta es NOX. La siguiente etapa es definir las entradas y construir la partición temporal: 2011 y 2012 para entrenamiento, 2013 para validación y 2014 y 2015 para prueba. Hasta ahora sólo se ha creado el subconjunto de entrenamiento para explorarlo; no se han ajustado modelos ni escaladores.
 
 Estimar emisiones de la misma hora no es pronosticar el futuro, demostrar causalidad ni sustituir legalmente un analizador certificado. No se promete precisión antes de entrenar y evaluar.
