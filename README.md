@@ -1,148 +1,64 @@
 # Emisiones de una turbina de gas · Analítica de Datos
 
-Proyecto académico de regresión para estimar la concentración de NOX de una turbina de gas a partir de sus condiciones ambientales y operativas de la misma hora.
+Proyecto final de regresión y monitoreo operativo para estimar la concentración contemporánea de **NOX** (`mg/m³`) de una turbina de gas industrial a partir de sus condiciones ambientales y operativas, evaluando su desempeño en años posteriores (`2014–2015`).
 
-## Objetivo y avance
+**Integrantes:** José Adrián Bazaldua Huerta · Sebastián de Jesús Enguilo Ruiz  
+**Materia:** Aplicaciones de Analítica de Datos · Universidad Iberoamericana
 
-¿Qué tan bien podemos estimar la concentración de NOX usando las condiciones ambientales y operativas de la turbina, y cómo funciona el modelo en años posteriores a los utilizados para entrenarlo?
+---
 
-Cada fila contiene mediciones de una hora. El modelo aprenderá a relacionar esas condiciones con el NOX medido. Los años organizan la evaluación: 2011 y 2012 para aprender, 2013 para comparar modelos y ajustes, y 2014 y 2015 para la prueba final. `anio` indica procedencia y no se usará como predictor. Estimar la emisión de la misma hora no equivale a pronosticar la siguiente; los CSV tampoco incluyen fechas completas por fila para justificar un horizonte horario.
+## Pregunta de investigación y resultados principales
 
-### Realizado
+> **¿Cuánto mejora la estimación horaria de `NOX` al incorporar variables internas de la turbina (`Set B`: 9 sensores) frente a emplear únicamente variables ambientales (`Set A`: `AT`, `AP`, `AH`), y se conserva esa mejora en años posteriores (`2014–2015`)?**
 
-- [x] Entorno reproducible, pruebas de integridad y cinco CSV originales completos en el repositorio.
-- [x] Unión en `df`: 36,733 filas y 12 columnas, incluyendo `anio`.
-- [x] Diccionario de variables y advertencias sobre las unidades de CDP y TEY.
-- [x] Revisión de tipos y faltantes: once columnas `float64`, `anio` entero y ningún faltante reconocido por pandas.
-- [x] Subconjunto exploratorio de entrenamiento: 2011 y 2012, con 15,039 registros.
-- [x] Boxplots, histogramas y comparación de esos dos años.
-- [x] Matriz de correlación y dispersión de AT frente a NOX, con interpretación escrita.
+### Protocolo temporal sin fuga de datos
+- **Entrenamiento (`2011–2012`):** `15,039` registros horarios (único bloque donde se ajustan escaladores, `PCA`, `K-Means`, `Isolation Forest` y pesos de regresión).
+- **Validación (`2013`):** `7,152` registros horarios (comparación de arquitecturas y ajuste de hiperparámetros).
+- **Prueba final (`2014–2015`):** `14,542` registros horarios (`7,158` en 2014 + `7,384` en 2015), evaluados una única vez con modelos congelados en `2011–2012`.
+- **Exclusiones estrictas en `X`:** Se excluyen `CO` (para no depender de otro analizador de gases), `NOX` y `anio`.
 
-AT presenta una correlación de aproximadamente −0.60 con NOX. GTEP, TEY y CDP están fuertemente correlacionadas entre sí, lo que requiere revisar su posible redundancia al preparar una regresión lineal. Estas asociaciones no demuestran causalidad ni justifican eliminar columnas automáticamente.
+### Resumen de desempeño obtenido
 
-### Pendiente
+| Modelo / Configuración | Sensores (`X`) | Val 2013 MAE | Val 2013 RMSE | Val 2013 $R^2$ | Prueba 2014–2015 MAE | Prueba 2014–2015 RMSE | Prueba 2014–2015 $R^2$ | Corr. Dinámica $r$ (14–15) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Baseline (Media `2011–2012`) | — | 8.931 | 12.184 | -0.0227 | 11.512 | 13.391 | -0.6031 | 0.0000 |
+| Regresión Lineal MCO (`Set A`) | 3 vars | 6.956 | 9.746 | 0.3456 | 10.521 | 12.173 | -0.3246 | 0.6418 |
+| Random Forest (`Set A`) | 3 vars | 6.715 | 9.470 | 0.3820 | 10.194 | 11.918 | -0.2697 | 0.5980 |
+| SVR Kernel RBF (`Set A`) | 3 vars | 6.582 | 9.342 | 0.3986 | 10.325 | 11.951 | -0.2767 | 0.5984 |
+| Regresión Lineal MCO (`Set B`) | 9 vars | 7.690 | 10.628 | 0.2218 | 7.431 | 10.102 | 0.0877 | 0.5472 |
+| Poly Grado 2 + Ridge (`Set B`) | 9 vars | 5.557 | 7.658 | 0.5959 | 7.286 | 8.951 | 0.2837 | 0.7482 |
+| Random Forest `mf=sqrt` (`Set B`) | 9 vars | 5.692 | 7.520 | 0.6104 | 10.153 | 11.428 | -0.1674 | 0.8053 |
+| SVR Kernel RBF (`Set B`) | 9 vars | 5.472 | 7.498 | 0.6126 | 11.579 | 12.669 | -0.4348 | 0.8162 |
+| **Ensamble No Lineal (`SVR+RF+PolyRidge`, `Set B`)** | **9 vars** | **5.485** | **7.409** | **0.6218** | 9.206 | 10.404 | 0.0324 | **0.8217** |
+| **Ensamble Híbrido Extrapolable (`PolyRidge+RF+Ridge`, `Set B`)** | **9 vars** | 5.730 | 7.757 | 0.5854 | **7.103** | **8.612** | **0.3370** | 0.7930 |
 
-- [ ] Definir las entradas `X` y la respuesta `y`, comparando condiciones ambientales con ambientales más operativas, sin incluir CO como entrada.
-- [ ] Construir explícitamente los conjuntos de entrenamiento, validación y prueba por año.
-- [ ] Decidir el escalado según el modelo y los ejemplos del profesor; ajustarlo sólo con entrenamiento si corresponde.
-- [ ] Entrenar, comparar y evaluar los modelos. Todavía no hay métricas de desempeño.
+### Hallazgos centrales de ingeniería
+1. **Valor incremental de los sensores internos:** En operación sin cambio de planta (`2013`), incorporar las 6 señales internas reduce el `RMSE` de `9.34` a **`7.41 mg/m³`** (`-20.7%`, $R^2 = 0.622$). En `2014–2015`, el **Ensamble Híbrido Extrapolable** reduce el `RMSE` de `11.92–12.17` (`Set A`) a **`8.61 mg/m³`** (`-27.8%`, $R^2 = +0.337$).
+2. **Regímenes físicos y no linealidad (`K-Means` + `ANOVA` + `Tukey HSD`):** `K-Means` identificó tres modos de operación en entrenamiento: *Carga Parcial* (`~112 MWh`, `NOX = 68.53 mg/m³`), *Carga Nominal* (`~134 MWh`, `NOX = 69.28 mg/m³`) y *Carga Plena DLN* (`~158 MWh`, **`NOX = 65.05 mg/m³`**). `ANOVA` ($F = 198.48, p < 10^{-85}$) y `Tukey HSD` ($p \le 0.001$) demuestran que a plena carga disminuyen las emisiones por operación óptima de premezcla pobre (*Dry Low NOx*), explicando el fracaso de MCO lineal simple.
+3. **Deriva física en `2014–2015` y vigilancia con `Isolation Forest`:** A igual carga (`132–136 MWh`) y temperatura ambiente (`15–20 °C`), a partir de `2014` la planta operó con menor `TIT` y mayor `CO`, reduciendo el nivel real de `NOX` unos `8–9 mg/m³` (*trade-off* $\text{CO}$–$\text{NO}_x$). Los árboles y `SVR RBF` mantienen alta correlación dinámica ($r > 0.80$) pero no extrapolan fuera del rango histórico de `TIT`, mientras que el **Ensamble Híbrido Extrapolable** sí proyecta esa caída térmica. `Isolation Forest` detecta el incremento de condiciones fuera de dominio en `2015` (`11.08%` de alertas) donde el error es mayor.
 
-Conservamos los valores y unidades originales: no hemos imputado, eliminado observaciones ni aplicado transformaciones. Las gráficas usan el entrenamiento; los años posteriores permanecen reservados para evaluación. El código sigue las herramientas de los ejemplos del profesor: pandas, `sns.histplot`, `sns.boxplot`, `sns.heatmap` y `sns.scatterplot`.
+---
 
-## Requisitos
+## Notebooks disponibles
 
-- Git, acceso al repositorio privado y conexión para instalar y descargar.
-- [uv](https://docs.astral.sh/uv/getting-started/installation/). En macOS con Homebrew: `brew install uv`. En Windows: `winget install --id=astral-sh.uv -e`.
-- Python **3.12.12**, fijado en `.python-version`; uv puede descargarlo si falta. No hace falta instalar paquetes globales ni activar manualmente `.venv`.
+- **[`notebooks/Proyecto_Final_Turbina_Colab.ipynb`](notebooks/Proyecto_Final_Turbina_Colab.ipynb)** — **Notebook principal completo (compatible con Google Colab y entorno local):** incluye carga con verificación SHA-256 (o descarga automática desde UCI en Colab), exploración, `PCA`, `K-Means`, `ANOVA/Tukey/Kruskal-Wallis`, `VIF`, diagnóstico de residuos MCO, iteración de modelos en `2013`, evaluación final `2014–2015`, `Isolation Forest` y la clase integrada `SensorVirtualTurbinaNOx` con pruebas automatizadas.
+- **[`notebooks/01_carga_y_variables.ipynb`](notebooks/01_carga_y_variables.ipynb)** — Avance exploratorio inicial conservado íntegramente.
 
-Cada integrante necesita aceptar una invitación desde **Settings → Collaborators**. El enlace solo no concede acceso al repositorio privado.
+---
 
-## Instalar y verificar
+## Instalación, ejecución y pruebas locales
 
 ```sh
-git clone git@github.com:Adr1anBaz/analitica-datos-turbina.git
-cd analitica-datos-turbina
 uv sync --locked
 uv run python -m scripts.verificar_setup
 uv run python -m unittest discover -s tests -v
-```
-
-El clon SSH requiere una llave autorizada. Alternativa con la autenticación HTTPS de tu cliente Git:
-
-```sh
-git clone https://github.com/Adr1anBaz/analitica-datos-turbina.git
-```
-
-No guardar credenciales o llaves privadas en el proyecto. `uv.lock` fija las versiones exactas de pandas, NumPy, matplotlib, seaborn, scikit-learn, JupyterLab, ipykernel y sus dependencias.
-
-Los cinco CSV ya vienen incluidos al clonar. El comando `uv run python -m scripts.descargar_datos` queda disponible para recuperarlos desde UCI si faltan, o para verificar los existentes sin descargarlos de nuevo.
-
-## Abrir el archivo de trabajo
-
-Desde la raíz del proyecto:
-
-```sh
 uv run jupyter lab
 ```
 
-Abrir **`notebooks/01_carga_y_variables.ipynb`** con el kernel **Python 3 (ipykernel)**. Ejecutar de arriba hacia abajo con `Shift+Enter` o **Run → Run All Cells**.
+---
 
-El notebook:
+## Fuente e integridad de datos
 
-1. Importa las librerías habituales de clase.
-2. Carga cada CSV con `pd.read_csv` y añade el año del archivo.
-3. Apila los cinco años con `pd.concat`, sin reordenar ni eliminar observaciones.
-4. Deja un único DataFrame **`df` de 36,733 filas y 12 columnas**: once variables originales y `anio` como procedencia.
-5. Muestra sus dimensiones, primeras filas y lista de columnas, con un diccionario de significados y dudas documentales.
-6. Revisa tipos y faltantes, y explora 2011 y 2012 con gráficas y correlaciones comentadas.
-
-El notebook incluye las salidas y figuras de una ejecución completa para poder revisar el avance en GitHub. Se puede volver a ejecutar desde cero; las salidas se regeneran con los originales incluidos.
-
-No se guarda un CSV unido: por ahora trabajamos con `df` en memoria y conservamos los originales intactos. Unir filas no obliga a mezclarlas aleatoriamente para evaluar modelos después.
-
-Jupyter se ejecuta dentro de `.venv` gracias a `uv run`. Si no abre el navegador, usar la URL de la terminal; no compartir su token de sesión. Para detenerlo, `Ctrl+C` y confirmar si lo solicita. En VS Code, seleccionar el intérprete `.venv` del proyecto.
-
-## Datos
-
-| Archivo original | Filas | Columnas originales |
-|---|---:|---:|
-| `gt_2011.csv` | 7,411 | 11 |
-| `gt_2012.csv` | 7,628 | 11 |
-| `gt_2013.csv` | 7,152 | 11 |
-| `gt_2014.csv` | 7,158 | 11 |
-| `gt_2015.csv` | 7,384 | 11 |
-| **Total** | **36,733** | **11** |
-
-Columnas originales: `AT`, `AP`, `AH`, `AFDP`, `GTEP`, `TIT`, `TAT`, `TEY`, `CDP`, `CO`, `NOX`. Ver [diccionario y sentido de ingeniería](docs/VARIABLES.md).
-
-Cada registro corresponde a datos agregados de una hora de operación de una instalación en Turquía, no a una turbina distinta. Los archivos no publican fechas completas por fila. El año se conoce por el nombre del archivo, no por una medición adicional.
-
-**Unidades pendientes de aclaración:** CDP presenta una contradicción entre tabla y esquema del artículo. TEY se conserva como producción energética con la unidad publicada, sin asumir que sea potencia o eficiencia. No corregimos números por suposición; ambas cuestiones se detallan en el diccionario.
-
-## Fuente e integridad
-
-- [UCI: Gas Turbine CO and NOx Emission Data Set](https://archive.ics.uci.edu/dataset/551/gas+turbine+co+and+nox+emission+data+set).
-- [DOI del dataset: 10.24432/C5WC95](https://doi.org/10.24432/C5WC95).
-- [Artículo original: Kaya, Tüfekci y Uzun (2019)](https://journals.tubitak.gov.tr/elektrik/vol27/iss6/53), [DOI 10.3906/elk-1807-87](https://doi.org/10.3906/elk-1807-87).
-- Licencia publicada por UCI: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); citar y atribuir la fuente al utilizar los datos. Ver [atribución de los CSV](data/README.md).
-- ZIP: aproximadamente **1.09 MB**; los cinco CSV suman aproximadamente **2.78 MB**. Reservar espacio adicional para el entorno Python.
-- SHA-256 del ZIP: `55fdb1acc25f05bd9c77aac285c424e9154ffb0dbf1bbadb56b69a1142231295`.
-
-El script verifica el ZIP y cada CSV con hashes fijados en `scripts/datos.py`. Comprueba encabezados, conteos y valores numéricos finitos. **No cambia unidades ni rellena valores.** Volver a ejecutar con los cinco originales presentes sólo verifica; no descarga de nuevo. Un archivo existente diferente no se sobrescribe.
-
-## Estructura
-
-```text
-.
-├── pyproject.toml / uv.lock / .python-version
-├── scripts/
-│   ├── datos.py
-│   ├── descargar_datos.py
-│   └── verificar_setup.py
-├── tests/test_setup.py
-├── notebooks/01_carga_y_variables.ipynb
-├── docs/VARIABLES.md
-├── docs/plans/
-├── data/README.md     # Fuente, licencia y atribución
-├── data/raw/          # Cinco CSV originales completos, incluidos en Git
-├── data/processed/    # Reservado; sin datos transformados
-└── outputs/           # Reservado; sin resultados de modelos
-```
-
-Git versiona código, notebook con sus figuras y tablas, documentación, pruebas, configuración y los cinco CSV originales. Excluye `.venv`, datos procesados, resultados externos al notebook, cachés y secretos.
-
-## Solución de problemas
-
-- **`uv` no se reconoce:** instalarlo y abrir otra terminal.
-- **Repositorio no encontrado:** revisar cuenta autenticada, invitación aceptada y acceso SSH/HTTPS.
-- **Falta un CSV:** ejecutar `uv run python -m scripts.descargar_datos` desde la raíz.
-- **Hash inesperado:** detenerse y revisar si cambió la fuente o el archivo local. No modificar hashes para ocultar el error ni sobrescribir trabajo sin revisarlo.
-- **Error de conexión:** comprobar acceso a UCI y reintentar; sólo se escriben originales tras verificar el contenido descargado.
-- **Jupyter usa otro entorno:** detenerlo y arrancar con `uv run jupyter lab` desde esta carpeta.
-- **Lock incompatible:** usar `pyproject.toml` y `uv.lock` del mismo commit; no regenerarlo sin revisar cambios.
-
-## Límites y siguiente etapa
-
-La respuesta propuesta es NOX. La siguiente etapa es definir las entradas y construir la partición temporal: 2011 y 2012 para entrenamiento, 2013 para validación y 2014 y 2015 para prueba. Hasta ahora sólo se ha creado el subconjunto de entrenamiento para explorarlo; no se han ajustado modelos ni escaladores.
-
-Estimar emisiones de la misma hora no es pronosticar el futuro, demostrar causalidad ni sustituir legalmente un analizador certificado. No se promete precisión antes de entrenar y evaluar.
+- [UCI: Gas Turbine CO and NOx Emission Data Set](https://archive.ics.uci.edu/dataset/551/gas+turbine+co+and+nox+emission+data+set) · [DOI: 10.24432/C5WC95](https://doi.org/10.24432/C5WC95) · Licencia [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- Artículo original: Kaya, H., Tüfekci, P., & Uzun, E. (2019), [DOI: 10.3906/elk-1807-87](https://doi.org/10.3906/elk-1807-87).
+- Documentación de variables y advertencias sobre unidades (`CDP`, `TEY`): [`docs/VARIABLES.md`](docs/VARIABLES.md).
