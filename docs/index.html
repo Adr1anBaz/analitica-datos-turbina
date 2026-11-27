@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="es" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Estimación de NOX en una turbina de gas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,640&family=Source+Sans+3:wght@420;560;680&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --paper: #f4efe6;
+        --ink: #14202b;
+        --navy: #004678;
+        --deep: #06263c;
+        --heat: #c24b24;
+        --line: #e3d7c6;
+        --muted: #5c6b76;
+        --display: "Fraunces", serif;
+        --sans: "Source Sans 3", sans-serif;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--sans);
+      }
+      .slide {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        padding: 72px 96px 56px;
+        background: var(--paper);
+        overflow: hidden;
+      }
+      .slide.dark {
+        background: var(--deep);
+        color: #f4efe6;
+      }
+      .bar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 14px;
+        height: 1080px;
+        background: var(--navy);
+        transform-origin: top center;
+      }
+      .dark .bar { background: var(--heat); }
+      .kicker {
+        font-size: 28px;
+        font-weight: 680;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--navy);
+      }
+      .dark .kicker { color: #f0b59a; }
+      h1, h2 {
+        font-family: var(--display);
+        font-weight: 560;
+        letter-spacing: -0.03em;
+        line-height: 1.02;
+        max-width: 1500px;
+      }
+      h1 { font-size: 92px; margin-top: 28px; }
+      h2 { font-size: 68px; margin-top: 18px; }
+      .lead, .point {
+        font-size: 42px;
+        line-height: 1.28;
+        max-width: 1460px;
+        margin-top: 28px;
+      }
+      .muted { color: var(--muted); }
+      .dark .muted { color: #c9d5de; }
+      .num {
+        font-family: var(--display);
+        font-size: 132px;
+        line-height: 0.9;
+        letter-spacing: -0.04em;
+        color: var(--navy);
+      }
+      .heat { color: var(--heat); }
+      .row {
+        display: flex;
+        gap: 48px;
+        align-items: center;
+        margin-top: 36px;
+      }
+      .col { flex: 1; min-width: 0; }
+      .figure {
+        width: 980px;
+        height: 620px;
+        object-fit: contain;
+        background: #fffdf8;
+        border: 1px solid var(--line);
+      }
+      .split { display: flex; gap: 40px; align-items: flex-start; margin-top: 28px; }
+      .split .copy { width: 720px; }
+      .split .figure { width: 980px; height: 640px; }
+      .foot {
+        position: absolute;
+        left: 96px;
+        right: 96px;
+        bottom: 36px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 26px;
+        color: var(--muted);
+      }
+      .dark .foot { color: #b7c6d1; }
+      .chips { display: flex; gap: 18px; margin-top: 36px; }
+      .chip {
+        border: 1px solid var(--line);
+        padding: 22px 26px;
+        min-width: 280px;
+        background: #fffdf8;
+      }
+      .chip b {
+        display: block;
+        font-family: var(--display);
+        font-size: 48px;
+        font-weight: 560;
+        color: var(--navy);
+        letter-spacing: -0.03em;
+      }
+      .chip span { display: block; margin-top: 8px; font-size: 32px; line-height: 1.2; }
+      .three { display: flex; gap: 28px; margin-top: 48px; }
+      .three article {
+        flex: 1;
+        border-top: 3px solid var(--heat);
+        padding-top: 22px;
+      }
+      .three h3 {
+        font-family: var(--display);
+        font-size: 48px;
+        font-weight: 560;
+        margin-bottom: 12px;
+      }
+      .three p { font-size: 34px; line-height: 1.25; }
+      .hot {
+        position: absolute;
+        left: 96px;
+        bottom: 108px;
+        font-size: 32px;
+        color: var(--navy);
+        border-bottom: 2px solid var(--heat);
+        padding-bottom: 4px;
+      }
+      html { width:100%; height:100%; background:#091723; }
+      body { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) scale(var(--scale,1)); transform-origin:center; }
+      .slide { opacity:0; visibility:hidden; pointer-events:none; transition:opacity 240ms ease; }
+      .slide.active { opacity:1; visibility:visible; pointer-events:auto; }
+      .slide.active h1, .slide.active h2 { animation:enter 550ms cubic-bezier(.2,.7,.2,1) both; }
+      .reveal { opacity:0; transform:translateY(20px); visibility:hidden; transition:opacity 380ms ease,transform 380ms ease; }
+      .reveal.shown { opacity:1; transform:none; visibility:visible; }
+      .controls { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); z-index:100; display:flex; gap:12px; align-items:center; padding:8px 16px; border-radius:8px; background:#14202bf0; color:white; font:24px var(--sans); }
+      button { cursor:pointer; font:inherit; border:0; color:inherit; background:transparent; padding:10px 18px; border-radius:4px; transition:background 160ms,transform 160ms; }
+      button:hover { background:#ffffff22; transform:translateY(-2px); }
+      button:active { transform:translateY(1px); }
+      button:focus-visible { outline:3px solid #edb78c; outline-offset:3px; }
+      button:disabled { opacity:.35; cursor:default; }
+      .hot { font-family:var(--sans); background:transparent; border-radius:0; }
+      .notes { position:absolute; inset:180px 120px 130px; z-index:90; background:var(--deep); color:var(--paper); padding:64px; font-size:42px; line-height:1.45; box-shadow:0 0 0 100px #06263cd9; }
+      .notes[hidden] { display:none; }
+      .progress { position:absolute; bottom:0; left:0; height:5px; background:var(--heat); transition:width 250ms; z-index:101; }
+      #portada { background:var(--deep); color:var(--paper); padding-top:100px; }
+      #portada .kicker { color:#f0b59a; }
+      #portada h1 { max-width:1400px; font-size:120px; margin-top:75px; }
+      #portada .lead { max-width:1250px; }
+      #portada .foot { color:#bdcdd8; }
+      #portada::after { content:'NOₓ'; position:absolute; right:100px; bottom:150px; font:200px var(--display); color:#ffffff0c; pointer-events:none; }
+      .chips { gap:32px; }
+      .chip { flex:1; border:0; border-top:3px solid var(--navy); background:transparent; padding:28px 0; }
+      .chip span { font-size:36px; }
+      .row { gap:160px; margin-top:70px; }
+      .row .num { font-size:170px; }
+      #fig2013 .figure { width:1680px; height:650px; }
+      .split .copy { flex:0 0 650px; }
+      .split .figure { flex:1; min-width:0; }
+      .three p { font-size:40px; }
+      @keyframes enter { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:none; } }
+      @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
+      @media print { html,body { width:1920px; height:auto; position:static; transform:none; overflow:visible; } .slide { position:relative; opacity:1; visibility:visible; break-after:page; } .reveal { opacity:1; visibility:visible; transform:none; } .controls,.progress,.notes,.hot { display:none; } }
+    </style>
+    <link rel="stylesheet" href="visuals.css" />
+  </head>
+  <body>
+    <script id="speaker-content" type="application/json">
+      {
+        "slides": [
+          { "sceneId": "portada", "notes": "Abrir con la pregunta, no con el modelo. Decir los dos nombres y que la respuesta, al final, es no. Un minuto." },
+          { "sceneId": "planta", "notes": "2 minutos. El aire pasa al compresor; el combustible aporta energía en la combustión. Los gases se expanden en la turbina y mueven un eje que acciona el compresor y el generador. El escape contiene contaminantes. Es un esquema genérico, no una reconstrucción de la instalación ni de su quemador. TIT no es la temperatura de la llama. Fuente: Department of Energy, How Gas Turbine Power Plants Work, https://www.energy.gov/hgeo/how-gas-turbine-power-plants-work" },
+          { "sceneId": "nox", "notes": "1.5 minutos. NO y NO2 son las especies que agrupamos como NOX en este proyecto; no son CO2 ni N2O. Durante la combustión se favorece la formación de óxidos de nitrógeno. No deducir una ley de formación ni un tipo de quemador con estos datos. El NO2 puede irritar las vías respiratorias y los NOX contribuyen a ozono y partículas. El dato del escape no es la concentración respirada por una persona. Fuente: EPA, https://www.epa.gov/no2-pollution/basic-information-about-no2" },
+          { "sceneId": "analizador", "notes": "1.5 minutos. El objetivo empresarial es comprobar las emisiones y su variación, y sustentar los reportes requeridos donde aplique. La cadena dibujada es conceptual: no contamos con la ficha del instrumento ni conocemos su principio de detección. El analizador es parte de un sistema de monitoreo, no todo el CEMS. Medimos concentración; no podemos dar kg/h sin caudal y condiciones de referencia. Fuente: EPA, https://www.epa.gov/emc/emc-continuous-emission-monitoring-systems" },
+          { "sceneId": "sinanalizador", "notes": "1.5 minutos. Si no hay medición directa ni alternativa validada, una predicción continúa entregando números aunque se haya desfasado. Sin la referencia no calculamos su error real y esta regla de revisión ya no se puede evaluar. Eso dificulta comprobar cambios y sustentar cumplimiento. No afirmar una multa o paro de la planta de Turquía: no conocemos su permiso. La normativa de EPA es contexto técnico, no normativa aplicable a esta instalación." },
+          { "sceneId": "problema", "notes": "1 minuto. Conectar el contexto con el estudio: calibrar y mantener consume recursos, pero no contamos con costos de esta planta. La pregunta de sustitución exige conservar el nivel en datos posteriores, además de validación técnica y aceptación normativa. No hemos demostrado ninguna equivalencia con un instrumento certificado." },
+          { "sceneId": "objetivo", "notes": "1 minuto. No confundir el objetivo de comunicación con el objetivo científico. Queremos que la audiencia entienda por qué se mide NOX. El análisis compara el aporte de sensores internos, examina la estabilidad fuera del entrenamiento y delimita los usos admitidos por los resultados. Ahora pasamos al método." },
+          { "sceneId": "evaluado", "fragments": [19.0, 21.6], "notes": "36,733 horas de una sola instalación. El corte es el de Kaya: 2011-2012 ajustan, 2013 compara, 2014-2015 no vuelven a entrar al ajuste. Si se mezclan, el examen ya está contaminado." },
+          { "sceneId": "entra", "fragments": [27.0, 29.6], "notes": "Conjunto A es el aire. Conjunto B añade la máquina. CO y el año no entran. No es pronóstico: hace falta la carga y el aire de esa hora, y el archivo no trae reloj civil." },
+          { "sceneId": "comparacion", "notes": "1.5 minutos. Menor RMSE significa menor error agregado, no un porcentaje de aciertos. Todos los modelos mostrados aquí reciben los nueve sensores. En 2013 gana el ensamble no lineal, que combina SVR, bosque y polinomio. El híbrido no gana ese año. En 2014-2015, sin reajustar los modelos, el híbrido tiene RMSE 8.612 frente a 10.480 y desfase +5.66 frente a +8.52. Por eso lo conservamos para seguimiento. Esta decisión se apoya retrospectivamente en los años posteriores; no es una nueva evaluación independiente ni demuestra estabilidad futura. El híbrido sigue desfasado y no justifica retirar el analizador. En la siguiente lámina explicamos cómo se calcula su estimación." },
+          { "sceneId": "mapa", "fragments": [35.0], "notes": "Definir híbrido en una frase: promedio, no un modelo nuevo. 60, 25 y 15. En 2013 gana otro. Se usa este porque en la prueba se corre menos. Si preguntan los pesos, pulsar el recuadro de abajo.", "hotspots": [{ "id": "h-pesos", "label": "De dónde salen los pesos", "target": "pesos", "region": { "x": 5, "y": 80, "w": 30, "h": 8 } }] },
+          { "sceneId": "errores", "notes": "1 minuto. Estas curvas son conceptuales, no observaciones. Pueden subir y bajar juntas y separarse en el eje vertical. Un error con signo permite ver nivel; el RMSE incorpora tanto desfase como variación. La desviación estándar de los residuales describe dispersión, no es un intervalo de predicción. Esta distinción organiza los hallazgos que siguen." },
+          { "sceneId": "y2013", "fragments": [43.0], "notes": "9.34 a 7.41 es aire contra el mejor ensamble interno. Siete miligramos son cerca de la décima parte de 70. El mapa sigue el movimiento. No decir todavía que se puede retirar." },
+          { "sceneId": "fig2013", "notes": "Señalar que las curvas se cruzan. Desfase es estimado menos medido. Menos 1.66 no es un hueco fijo. La dispersión de una hora es mayor que ese promedio." },
+          { "sceneId": "y2014", "fragments": [59.0], "notes": "Sigue la silueta y queda arriba: 4.1 y 7.1. Firmar el mapa habría reportado más emisión de la que el analizador seguía midiendo." },
+          { "sceneId": "fig2014", "notes": "Dejar la figura un momento. La línea estimada acompaña y no regresa al nivel medido. No diagnosticar daño ni mantenimiento." },
+          { "sceneId": "medicion", "notes": "1.5 minutos. El cambio también aparece en la medición: no es solo un artefacto de la predicción. No implica que el modelo no tenga error ni aísla todas las condiciones. En TEY 132-136 y AT 15-20, 2011-2013 supera a 2014 por 6.92 mg/m3; IC95 por bloques: 5.38 a 8.64. Los bloques conservan parte de la dependencia temporal; el intervalo no elimina confusión por variables no medidas. TIT baja unos cinco grados. Sin bitácora no hay causa demostrada. 2015: 115 registros de esta ventana, solo descriptivo." },
+          { "sceneId": "sensores", "fragments": [83.0], "notes": "GTEP y CDP cuentan la misma carga que TEY. Pueden salir. Quitar TEY sí duele. Ninguna barra de 2014 cruza cero: la reducción no cierra el desfase." },
+          { "sceneId": "alarma", "fragments": [91.0, 93.6], "notes": "Deslizante: avanza un registro cada vez. No es una semana de calendario. 5.12 es el percentil 95 de 2013, no una norma. 5 por ciento, luego 37 y 61. Ahí se calibra el analizador y se mira TIT. No clasifica la turbina como dañada." },
+          { "sceneId": "simula", "fragments": [99.0], "notes": "El panel derecho aísla la temperatura. 80, 69 y 56 al pasar de 10 a 28 grados. Sirve para un escenario dentro de 2011-2012. No es valor oficial de 2014 ni pronóstico." },
+          { "sceneId": "decision", "fragments": [107.0], "notes": "Parar en la frase. Luego los tres usos: referencia de hora ya medida, escenario dentro del rango, alarma. El instrumento sigue en su lugar." },
+          { "sceneId": "faltaria", "fragments": [115.0, 117.6], "notes": "Lo que cambiaría la decisión es una bitácora de 2014 o el costo de calibrar en esta planta. Otro algoritmo no. No citar ahorros de otros fabricantes." },
+          { "sceneId": "cierre", "fragments": [123.0], "notes": "Tres frases y callar. Sensores mejoran la cuenta cuando la planta se parece. No alcanzan para firmar los años siguientes. El analizador permanece." }
+        ],
+        "slideSequences": [
+          {
+            "id": "pesos",
+            "label": "De dónde salen los pesos",
+            "slides": [{ "sceneId": "pesos", "notes": "Solo si preguntan. Los pesos fueron fijados en el catálogo, no se documenta una optimización. El razonamiento sobre funciones polinómicas y bosques no identifica los porcentajes óptimos ni garantiza extrapolación. RMSE 5.323 frente a 6.139 corresponde a bloques dentro de 2011-2012; no es el resultado del año 2013." }]
+          }
+        ]
+      }
+    </script>
+
+    <div class="slide clip" id="portada" data-composition-id="portada" data-label="Portada" data-start="0" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Universidad Iberoamericana · 27 de noviembre de 2026</p>
+      <h1>¿Se puede retirar el analizador de NOX?</h1>
+      <p class="lead">Por qué una empresa necesita conocer sus emisiones y qué encontramos al intentar estimarlas con los sensores de proceso.</p>
+      <p class="lead" style="margin-top:48px">36,733 horas de una sola instalación, 2011–2015.</p>
+      <p class="foot"><span>José Adrián Bazaldua Huerta · Sebastián de Jesús Enguilo Ruiz</span><span>Aplicaciones de Analítica de Datos</span></p>
+    </div>
+
+    <div class="slide clip" id="planta" data-composition-id="planta" data-label="La planta" data-start="8" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Contexto · La máquina</p>
+      <h2>Entra aire. Sale electricidad y gas de escape.</h2>
+      <p class="explain">La combustión calienta el gas. Al expandirse, mueve el eje que acciona el compresor y el generador.</p>
+      <svg class="diagram" viewBox="0 0 1680 450" role="img" aria-label="Esquema genérico de turbina: aire, compresor, combustión, expansión, escape y generador">
+        <defs><linearGradient id="metal" x2="0" y2="1"><stop stop-color="#d1dee3"/><stop offset=".5" stop-color="#f8f5ef"/><stop offset="1" stop-color="#9aafba"/></linearGradient><linearGradient id="hot-gas"><stop stop-color="#f6c986"/><stop offset="1" stop-color="#cf7444"/></linearGradient></defs>
+        <path d="M150 145H330L570 195H720V145H950L1170 190H1450V310H1170L950 360H720V310H570L330 360H150" fill="url(#metal)" stroke="#547180" stroke-width="3"/>
+        <path d="M610 207H1060V294H610Z" fill="url(#hot-gas)" opacity=".6"/>
+        <path d="M300 195L570 225M300 310L570 280" stroke="#7d939f" stroke-width="3"/>
+        <g stroke="#658491" stroke-width="13"><path d="M355 194L375 306M410 205L430 296M465 216L485 286M520 228L540 277"/></g>
+        <g stroke="#bc7547" stroke-width="15"><path d="M990 194L1010 310M1045 208L1065 297M1100 220L1120 285"/></g>
+        <path d="M305 253H1275" stroke="#425b69" stroke-width="15"/>
+        <path class="fire" d="M738 205Q764 159 800 205Q821 177 846 218Q872 193 903 245Q864 280 810 276Q756 272 738 247Z" fill="#c24b24"/><path class="fire" d="M755 225Q792 192 823 228Q853 209 882 245Q827 270 755 247Z" fill="#f3bc6b"/>
+        <path d="M820 64V150" stroke="#c24b24" stroke-width="9"/><path d="M807 131L820 151L833 131" fill="none" stroke="#c24b24" stroke-width="5"/>
+        <text x="730" y="42">Combustible</text>
+        <g fill="none" stroke="#3289a2" stroke-width="5" class="flow"><path d="M0 213H270"/><path d="M0 285H270"/></g>
+        <g fill="none" stroke="#c24b24" stroke-width="5" class="flow"><path d="M1160 214H1660"/><path d="M1160 287H1660"/></g>
+        <rect x="1275" y="330" width="180" height="80" rx="12" fill="#004678"/>
+        <path d="M1250 253V370H1275" fill="none" stroke="#425b69" stroke-width="8"/>
+        <g class="rotor" stroke="#f4efe6" stroke-width="4"><circle cx="1320" cy="370" r="24" fill="none"/><path d="M1298 370H1342M1320 348V392"/></g>
+        <text x="1360" y="383" style="fill:white;font-size:28px">MW</text>
+        <text x="35" y="127">Aire</text><text x="330" y="112">Compresor</text><text x="715" y="407">Combustión</text><text x="1000" y="140">Turbina</text><text x="1470" y="168">Escape</text>
+        <path d="M1535 245V55H1470" stroke="#004678" stroke-width="5" fill="none"/>
+        <circle cx="1535" cy="245" r="8" fill="#004678"/>
+        <rect x="1290" y="15" width="180" height="70" rx="8" fill="#06263c"/>
+        <text x="1320" y="62" style="fill:#f4efe6;font-size:36px">NOX</text><text x="1280" y="118" class="label">Analizador</text>
+        <text x="1280" y="443" class="label">Generador</text><text x="1470" y="340" class="label">Incluye NO y NO₂</text>
+      </svg>
+      <p class="explain reveal r1">Los sensores describen cómo trabaja la máquina. El analizador mide la concentración de NOX en el escape.</p>
+      <p class="foot"><span>Esquema genérico de funcionamiento</span><span>Fuente técnica: Department of Energy</span></p>
+    </div>
+
+    <section class="slide" id="nox" aria-labelledby="title-nox">
+      <div class="bar"></div><p class="kicker">Contexto · El contaminante</p>
+      <h2 id="title-nox">NOX es el conjunto de óxidos de nitrógeno que vigilamos.</h2>
+      <div class="visual-grid">
+        <div>
+          <div class="molecules" role="img" aria-label="Monóxido de nitrógeno, un nitrógeno y un oxígeno; dióxido de nitrógeno, un nitrógeno y dos oxígenos">
+            <svg class="molecule" viewBox="0 0 320 250"><path class="bond" d="M100 125H220"/><circle class="atom-n" cx="100" cy="125" r="50"/><circle class="atom-o" cx="220" cy="125" r="50"/><text x="100" y="125">N</text><text x="220" y="125">O</text></svg>
+            <svg class="molecule" viewBox="0 0 320 250"><path class="bond" d="M75 165L160 85L245 165"/><circle class="atom-o" cx="75" cy="165" r="43"/><circle class="atom-n" cx="160" cy="85" r="46"/><circle class="atom-o" cx="245" cy="165" r="43"/><text x="75" y="165">O</text><text x="160" y="85">N</text><text x="245" y="165">O</text></svg>
+          </div>
+          <p class="formula">NO + NO₂ <small>en este proyecto</small></p>
+        </div>
+        <div>
+          <h3>Se generan en la combustión.</h3>
+          <p>A altas temperaturas, el nitrógeno y el oxígeno pueden reaccionar. El escape transporta los gases resultantes.</p>
+          <div class="reveal r1"><h3 style="margin-top:30px">Importan fuera de la planta.</h3><p>El NO₂ irrita las vías respiratorias. Los NOX contribuyen a formar ozono y partículas en la atmósfera.</p></div>
+        </div>
+      </div>
+      <p class="source-note">La concentración del escape no es la exposición de una persona: la dispersión atmosférica queda fuera de este estudio.</p>
+      <p class="foot"><span>NO: monóxido · NO₂: dióxido</span><span>EPA · Información básica sobre NO₂</span></p>
+    </section>
+
+    <section class="slide" id="analizador" aria-labelledby="title-analizador">
+      <div class="bar"></div><p class="kicker">Contexto · Medir para decidir</p>
+      <h2 id="title-analizador">La empresa necesita conocer la emisión, no solo la carga.</h2>
+      <p class="explain">Producir la misma electricidad no garantiza la misma concentración de NOX. La medición permite comprobar qué sale del escape.</p>
+      <div class="pathway" role="img" aria-label="Recorrido conceptual de una medición extractiva: muestra de escape, analizador y registro">
+        <div class="station"><strong>Escape</strong><p>Una sonda toma una muestra del gas.</p></div><span class="connector" aria-hidden="true">→</span>
+        <div class="station"><strong>Analizador</strong><p>Determina la concentración de NOX.</p></div><span class="connector" aria-hidden="true">→</span>
+        <div class="station"><strong>Registro</strong><p>Permite comparar medición, operación y requisitos aplicables.</p></div>
+      </div>
+      <div class="screen reveal r1"><svg class="signal" viewBox="0 0 160 70" aria-hidden="true"><path class="flow" d="M0 40H25L40 15L60 60L90 25L110 40H160" stroke="#f0b59a" stroke-width="4" fill="none"/></svg><strong>mg/m³</strong><p>Miligramos de NOX por volumen de gas. El dataset no permite convertir este dato, por sí solo, en kilogramos emitidos por hora.</p></div>
+      <p class="foot"><span>Cadena de medición conceptual</span><span>EPA · Sistemas de monitoreo continuo</span></p>
+    </section>
+
+    <section class="slide" id="sinanalizador" aria-labelledby="title-sinanalizador">
+      <div class="bar"></div><p class="kicker">Contexto · La pérdida de información</p>
+      <h2 id="title-sinanalizador">Sin referencia, un modelo puede equivocarse sin que lo sepamos.</h2>
+      <div class="compare">
+        <article><h3>Medición + estimación</h3><div class="evidence"><span class="dot"></span>Conocemos el valor medido.</div><div class="evidence"><span class="dot"></span>Calculamos la diferencia.</div><div class="evidence"><span class="dot"></span>Detectamos un desfase persistente.</div></article>
+        <article><h3>Solo estimación</h3><div class="evidence missing"><span class="dot"></span>La pantalla sigue dando un número.</div><div class="evidence missing"><span class="dot"></span>No sabemos su error en esa hora.</div><div class="evidence missing"><span class="dot"></span>Un cambio puede pasar inadvertido.</div></article>
+      </div>
+      <p class="explain reveal r1">Medir ayuda a seguir cambios y a sustentar reportes de emisiones. Un método alternativo necesita validación y, cuando corresponda, autorización.</p>
+      <p class="source-note">No contamos con el permiso ambiental de esta planta turca. No afirmamos multas, cierres ni una obligación específica de usar este instrumento.</p>
+      <p class="foot"><span>Retirar el instrumento no elimina las emisiones</span><span>El riesgo es perder su comprobación</span></p>
+    </section>
+
+    <section class="slide" id="problema" aria-labelledby="title-problema">
+      <div class="bar"></div><p class="kicker">Planteamiento · De la necesidad a la pregunta</p>
+      <h2 id="title-problema">¿Los sensores existentes permiten sustituir al analizador?</h2>
+      <p class="explain">El analizador requiere calibración y mantenimiento. Una estimación con sensores ya instalados sería atractiva si mantuviera su precisión en años posteriores.</p>
+      <div class="decision-path">
+        <div class="choice"><p class="tag">Si el nivel se mantiene</p><h3>Evaluar la sustitución</h3><p>Habría que validar el método, su aceptación regulatoria y sus costos.</p></div>
+        <div class="arrow" aria-hidden="true">↔</div>
+        <div class="choice"><p class="tag">Si el nivel cambia</p><h3>Conservar la medición</h3><p>Usar el modelo como referencia y revisar la separación entre ambos.</p></div>
+      </div>
+      <p class="explain reveal r1">Nuestro problema no es conseguir una curva parecida: es saber si la estimación conserva el nivel de NOX.</p>
+      <p class="foot"><span>Pregunta del proyecto</span><span>No hay costos de esta instalación en los archivos</span></p>
+    </section>
+
+    <section class="slide" id="objetivo" aria-labelledby="title-objetivo">
+      <div class="bar"></div><p class="kicker">Objetivo · Qué debe demostrar el análisis</p>
+      <h2 id="title-objetivo">Decidir hasta dónde puede usarse la estimación.</h2>
+      <div class="objective-row">
+        <article><span class="number">01</span><h3>Comparar</h3><p>¿Añadir sensores internos mejora el cálculo frente a usar solo el aire de admisión?</p></article>
+        <article><span class="number">02</span><h3>Comprobar</h3><p>¿El modelo conserva el nivel en años que no participaron en el entrenamiento?</p></article>
+        <article><span class="number">03</span><h3>Delimitar</h3><p>¿Cuándo sirve como referencia, simulación o señal de revisión?</p></article>
+      </div>
+      <div class="screen reveal r1"><strong>La prueba</strong><p>Aprender con los primeros años y confrontar la estimación con el analizador en los siguientes.</p></div>
+      <p class="foot"><span>Objetivo del estudio</span><span>A continuación: cómo se hizo</span></p>
+    </section>
+
+    <section class="slide" id="errores" aria-labelledby="title-errores">
+      <div class="bar"></div><p class="kicker">Método · Cómo leer los resultados</p>
+      <h2 id="title-errores">Seguir la curva y acertar el nivel son cosas distintas.</h2>
+      <svg class="metric-visual" viewBox="0 0 1680 330" role="img" aria-label="Diagrama conceptual: dos curvas de forma similar pueden estar separadas verticalmente">
+        <path d="M80 25V270H1600" stroke="#7e929e" stroke-width="3" fill="none"/>
+        <path d="M100 215C230 215 230 110 370 110S510 230 650 230S810 110 950 110S1100 200 1260 200S1450 155 1550 155" stroke="#004678" stroke-width="8" fill="none"/>
+        <path d="M100 145C230 145 230 40 370 40S510 160 650 160S810 40 950 40S1100 130 1260 130S1450 85 1550 85" stroke="#c24b24" stroke-width="8" stroke-dasharray="17 10" fill="none"/>
+        <path d="M650 164V225M630 164H670M630 225H670" stroke="#c24b24" stroke-width="4"/>
+        <text x="690" y="198">Desfase positivo</text><text x="1030" y="310">Orden de los registros →</text>
+      </svg>
+      <div class="three"><article><h3>Desfase</h3><p>Estimado menos medido. Positivo: el modelo queda arriba.</p></article><article><h3>RMSE</h3><p>Resume la magnitud del error y penaliza más los errores grandes.</p></article><article><h3>Dispersión</h3><p>Los errores de cada hora varían alrededor del desfase medio.</p></article></div>
+      <p class="foot"><span>Azul: medición · Naranja: estimación</span><span>Esquema conceptual, no datos de la planta</span></p>
+    </section>
+
+    <div class="slide clip" id="evaluado" data-composition-id="evaluado" data-label="Qué se evaluó" data-start="16" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Método · La separación temporal</p>
+      <h2>36,733 horas, sin mezclar los años.</h2>
+      <div class="chips">
+        <div class="chip reveal r1"><b>2011–2012</b><span>Aquí se ajusta el mapa. 15,039 horas.</span></div>
+        <div class="chip reveal r1"><b>2013</b><span>Aquí se comparan modelos. 7,152 horas.</span></div>
+        <div class="chip reveal r1"><b>2014–2015</b><span>14,542 horas para comprobar el comportamiento posterior.</span></div>
+      </div>
+      <div class="timeline" aria-hidden="true"></div>
+      <p class="lead reveal r2">Se congelan los ajustes de 2011–2012. Los años posteriores permiten observar si el nivel se mantiene.</p>
+      <p class="explain">La selección del híbrido para seguimiento es retrospectiva: su menor error posterior no constituye una nueva prueba independiente.</p>
+      <p class="foot"><span>Una instalación de Turquía, cinco archivos</span><span>Fuente: Kaya et al. y UCI</span></p>
+    </div>
+
+    <div class="slide clip" id="entra" data-composition-id="entra" data-label="Qué entra" data-start="24" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Método · Las entradas</p>
+      <h2>Estimamos NOX con condiciones de esa misma hora.</h2>
+      <div class="signal-lanes">
+        <div class="sensor-box"><h3>Aire de admisión</h3><p>Temperatura · AT<br>Presión · AP<br>Humedad · AH</p></div>
+        <div class="sensor-lines" aria-hidden="true"><div class="pulse-line"></div><div class="pulse-line"></div><div class="pulse-line"></div></div>
+        <div class="sensor-box output"><h3>Modelo</h3><p>Estimación paralela de NOX en mg/m³</p></div>
+      </div>
+      <div class="screen reveal r1"><strong>+ La máquina</strong><p>Filtro, presión de escape y del compresor, temperaturas de entrada y salida, y energía producida. Son los seis sensores internos.</p></div>
+      <p class="explain reveal r2">CO, NOX y año no son entradas. Sin las condiciones de una hora futura, esto no es un pronóstico.</p>
+      <p class="foot"><span>03</span><span>Misma hora, no hora futura</span></p>
+    </div>
+
+    <section class="slide" id="comparacion" aria-labelledby="title-comparacion">
+      <div class="bar"></div><p class="kicker">Método · Comparación de modelos</p>
+      <h2 id="title-comparacion">El híbrido no ganó 2013; se desfasó menos después.</h2>
+      <p class="explain">Comparamos regresiones, SVR y bosques con los mismos nueve sensores. Menor RMSE significa menor error respecto al analizador.</p>
+      <div class="comparison-grid">
+        <div><h3>Validación · 2013</h3>
+          <table class="comparison-table"><thead><tr><th scope="col">Modelo</th><th scope="col">RMSE</th></tr></thead><tbody>
+            <tr class="best-model"><th scope="row">Ensamble no lineal</th><td>7.41</td></tr>
+            <tr><th scope="row">SVR</th><td>7.50</td></tr>
+            <tr><th scope="row">Bosque aleatorio</th><td>7.53</td></tr>
+            <tr><th scope="row">Polinomio + Ridge</th><td>7.66</td></tr>
+            <tr class="hybrid-model"><th scope="row">Ensamble híbrido</th><td>7.76</td></tr>
+            <tr><th scope="row">Regresión lineal</th><td>10.63</td></tr>
+          </tbody></table>
+        </div>
+        <div class="reveal r1"><h3>Prueba conjunta · 2014–2015</h3>
+          <table class="comparison-table"><thead><tr><th scope="col">Ensamble</th><th scope="col">RMSE</th><th scope="col">Desfase</th></tr></thead><tbody>
+            <tr><th scope="row">No lineal</th><td>10.48</td><td>+8.52</td></tr>
+            <tr class="hybrid-model"><th scope="row">Híbrido</th><td>8.61</td><td>+5.66</td></tr>
+          </tbody></table>
+          <div class="comparison-verdict"><strong>Por eso se usa para seguimiento.</strong><p>En estos años reduce tanto el error como la sobreestimación. Aun así, queda por encima del valor medido.</p></div>
+        </div>
+      </div>
+      <p class="source-note">Elección retrospectiva, sin garantía de desempeño futuro. RMSE y desfase en mg/m³.</p>
+      <p class="foot"><span>Reporte del proyecto · Valores redondeados</span><span>A continuación: cómo funciona el híbrido</span></p>
+    </section>
+
+    <div class="slide clip" id="mapa" data-composition-id="mapa" data-label="El mapa" data-start="32" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Método · El ensamble híbrido</p>
+      <h2>Tres modelos combinan sus estimaciones.</h2>
+      <p class="explain">Cada modelo calcula el NOX de la misma hora. El híbrido combina esas tres respuestas en un promedio ponderado.</p>
+      <div class="model-merge">
+        <div class="lanes"><div class="model-lane"><span>Polinomio + Ridge<small>Representa curvaturas e interacciones.</small></span><strong>60 %</strong></div><div class="model-lane"><span>Bosque aleatorio<small>Promedia muchos árboles de decisión.</small></span><strong>25 %</strong></div><div class="model-lane"><span>Regresión Ridge<small>Ajusta una relación lineal regularizada.</small></span><strong>15 %</strong></div></div>
+        <div class="sum" aria-hidden="true">→</div><div class="output"><strong>Una estimación</strong>0.60 × polinomio<br>+ 0.25 × bosque<br>+ 0.15 × Ridge<br><small>Promedio de predicciones, no de sensores.</small></div>
+      </div>
+      <p class="explain reveal r1">Combina patrones lineales y no lineales. Los pesos son fijos.</p>
+      <button class="hot" type="button" id="open-detail">Ver el criterio de los pesos ↗</button>
+      <p class="foot"><span>04</span><span>Ajustado solo con 2011 y 2012</span></p>
+    </div>
+
+    <div class="slide clip" id="y2013" data-composition-id="y2013" data-label="2013" data-start="40" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Hallazgos · Primera pregunta</p>
+      <h2>Pasar del aire a los sensores internos baja el error.</h2>
+      <div class="row">
+        <div>
+          <p class="num">9.34</p>
+          <p class="lead" style="margin-top:12px">mg/m³ con solo aire</p>
+        </div>
+        <div>
+          <p class="num heat">7.41</p>
+          <p class="lead" style="margin-top:12px">mg/m³ con sensores internos</p>
+        </div>
+      </div>
+      <div class="error-bars"><span>Solo aire · mejor modelo</span><div class="track"><div class="fill" style="width:93.4%"></div></div><span>9.34 mg/m³</span></div>
+      <div class="error-bars"><span>Aire + sensores internos</span><div class="track"><div class="fill heat-fill" style="width:74.1%"></div></div><span>7.41 mg/m³</span></div>
+      <p class="explain reveal r1">Los sensores internos reducen el RMSE cerca de 21 %. El NOX medio ronda 70 mg/m³: el error sigue siendo aproximadamente una décima parte de ese nivel.</p>
+      <p class="foot"><span>05</span><span>2013, antes de que cambie el nivel</span></p>
+    </div>
+
+    <div class="slide clip" id="fig2013" data-composition-id="fig2013" data-label="Figura 2013" data-start="48" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Hallazgos · Referencia de 2013</p>
+      <h2>El estimado queda 1.66 mg/m³ por debajo, y las curvas se cruzan.</h2>
+      <div class="split">
+        <img id="fig-2013" class="figure clip" data-start="0" data-duration="8" src="assets/figuras/offset_hibrido_2013.png" alt="NOX medido y estimado en 2013, con promedio móvil de 168 registros" />
+      </div>
+      <p class="foot"><span>Desfase: estimado − medido</span><span>Dispersión de residuales en 2013: 7.58 mg/m³</span></p>
+    </div>
+
+    <div class="slide clip" id="y2014" data-composition-id="y2014" data-label="2014 y 2015" data-start="56" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Hallazgos · Segunda pregunta</p>
+      <h2>El mapa sigue el movimiento y se queda arriba.</h2>
+      <div class="row">
+        <div>
+          <p class="num heat">+4.1</p>
+          <p class="lead" style="margin-top:12px">mg/m³ en 2014</p>
+        </div>
+        <div>
+          <p class="num heat">+7.1</p>
+          <p class="lead" style="margin-top:12px">mg/m³ en 2015</p>
+        </div>
+      </div>
+      <svg class="offset-drawing" viewBox="0 0 1680 200" role="img" aria-label="Esquema de dos curvas que se mueven juntas pero están separadas verticalmente"><path d="M30 150C180 150 180 75 340 75S520 160 680 160S850 80 1030 80S1200 140 1380 140H1610" stroke="#004678" stroke-width="7" fill="none"/><path d="M30 85C180 85 180 10 340 10S520 95 680 95S850 15 1030 15S1200 75 1380 75H1610" stroke="#c24b24" stroke-width="7" stroke-dasharray="15 12" fill="none"/><text x="1260" y="193">Esquema del desfase</text></svg>
+      <p class="explain reveal r1">Sin el analizador, no habríamos podido comprobar este error. Sustituir su lectura por la estimación habría reportado una concentración mayor que la medida.</p>
+      <p class="foot"><span>07</span><span>Misma curva, nivel corrido</span></p>
+    </div>
+
+    <div class="slide clip" id="fig2014" data-composition-id="fig2014" data-label="Figura 2014-2015" data-start="64" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Hallazgos · Seguimiento posterior</p>
+      <h2>La silueta se conserva. El nivel no regresa.</h2>
+      <img id="fig-2014" class="figure clip" data-start="0" data-duration="8" src="assets/figuras/offset_hibrido_2014_2015.png" alt="NOX medido y estimado en 2014 y 2015. El estimado queda por encima." style="width:1680px;height:640px;margin-top:24px" />
+      <p class="foot"><span>08</span><span>Promedio móvil deslizante de 168 registros</span></p>
+    </div>
+
+    <div class="slide clip" id="medicion" data-composition-id="medicion" data-label="La medición" data-start="72" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Hallazgos · El cambio también está en la medición</p>
+      <h2>Con carga y clima parecidos, el NOX medido baja.</h2>
+      <div class="split">
+        <div class="copy">
+          <p class="lead">TEY de 132 a 136 MWh. AT de 15 a 20 °C.</p>
+          <p class="num heat" style="font-size:96px;margin-top:18px">6.92</p>
+          <p class="lead">mg/m³ menos en 2014 que en 2011–2013. El intervalo, de 5.38 a 8.64, no incluye el cero.</p>
+          <p class="lead reveal r1">TIT baja unos cinco grados. El archivo no dice la causa. 2015 tiene 115 horas y no entra a este contraste.</p>
+        </div>
+        <img id="fig-fija" class="figure clip" data-start="0" data-duration="8" src="assets/figuras/nox_condicion_fija.png" alt="NOX y TIT en horas de carga y clima parecidos, por año" />
+      </div>
+      <p class="foot"><span>09</span><span>La baja está en el analizador</span></p>
+    </div>
+
+    <div class="slide clip" id="sensores" data-composition-id="sensores" data-label="Sensores" data-start="80" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Hallazgos · Redundancia de sensores</p>
+      <h2>El modelo puede omitir dos presiones si conserva TEY.</h2>
+      <img id="fig-sensores" class="figure clip" data-start="0" data-duration="8" src="assets/figuras/reduccion_sensores.png" alt="Error y desfase al quitar sensores redundantes" style="width:1680px;height:520px;margin-top:16px" />
+      <p class="explain reveal r1">GTEP y CDP aportan poca mejora adicional cuando TEY describe la carga. Quitar TEY aumenta el error. Ninguna reducción elimina el desfase de 2014.</p>
+      <p class="foot"><span>Reducción de entradas del modelo</span><span>No es una recomendación de retirar sensores físicos</span></p>
+    </div>
+
+    <div class="slide clip" id="alarma" data-composition-id="alarma" data-label="Alarma" data-start="88" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Aplicación · Convertir el hallazgo en una regla</p>
+      <h2>Una hora suelta no dispara la revisión.</h2>
+      <p class="explain">Se promedia el desfase de los últimos <strong>168 registros</strong>. La ventana avanza una posición cada vez.</p>
+      <div class="window-track" role="img" aria-label="Esquema de una ventana que se desplaza sobre una secuencia de registros; no representa valores reales de NOX">
+        <span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="sample-bar"></span><span class="moving-window"></span>
+      </div>
+      <div class="window-key"><span>Ventana deslizante, esquema</span><strong>Promedio &gt; 5.12 mg/m³ → revisión</strong></div>
+      <p class="explain reveal r1">El corte es el percentil 95 de 2013. Estas son las proporciones de ventanas que lo superan:</p>
+      <div class="chips">
+        <div class="chip"><b>5 %</b><span>2013. Escaso por construcción.</span></div>
+        <div class="chip"><b>37 %</b><span>2014. Cerca de cuatro de cada diez.</span></div>
+        <div class="chip"><b>61 %</b><span>2015. Cerca de tres de cada cinco.</span></div>
+      </div>
+      <p class="explain reveal r2">Se revisan calibración y operación. La marca no identifica una falla ni exige que cada uno de los 168 registros supere el corte.</p>
+      <p class="foot"><span>No es una semana de calendario verificada</span><span>La regla necesita que el analizador siga midiendo</span></p>
+    </div>
+
+    <div class="slide clip" id="simula" data-composition-id="simula" data-label="Simulación" data-start="96" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Aplicación · Simulación acotada</p>
+      <h2>Un escenario dentro de 2011–2012. No un valor oficial.</h2>
+      <div class="split">
+        <img id="fig-sim" class="figure clip" data-start="0" data-duration="8" src="assets/figuras/simulacion_escenarios.png" alt="NOX estimado al cambiar la temperatura de admisión con la carga fija" />
+        <div class="copy">
+          <p class="lead">Con la carga nominal fija, a 10 °C el mapa estima 80 mg/m³. A 18 °C, 69. A 28 °C, 56.</p>
+          <p class="lead reveal r1">Aire más caliente, menos NOX. Es la misma dirección que en el entrenamiento. No pronostica una hora sin medir.</p>
+        </div>
+      </div>
+      <p class="foot"><span>Solo AT cambia en el panel derecho</span><span>Estar dentro de rangos no prueba causalidad</span></p>
+    </div>
+
+    <div class="slide dark clip" id="decision" data-composition-id="decision" data-label="Decisión" data-start="104" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Conclusión · La evidencia conduce a la decisión</p>
+      <h2 style="font-size:88px">No se retira el analizador.</h2>
+      <div class="conclusion-proof"><span><strong>El error baja</strong>Los sensores internos ayudan en 2013.</span><span><strong>El nivel cambia</strong>En 2014–2015 la estimación queda arriba.</span><span><strong>Hace falta comparar</strong>Sin medición no conocemos ese desfase.</span></div>
+      <div class="three">
+        <article class="reveal r1"><h3>Referencia</h3><p>El NOX de una hora ya medida, mientras la planta se parezca a 2011 y 2012.</p></article>
+        <article class="reveal r1"><h3>Escenario</h3><p>Hacia dónde se mueve el gas si las condiciones caben en ese rango.</p></article>
+        <article class="reveal r1"><h3>Alarma</h3><p>Cuándo el estimado y el analizador dejan de contar la misma historia.</p></article>
+      </div>
+      <p class="foot"><span>13</span><span>El instrumento sigue midiendo</span></p>
+    </div>
+
+    <div class="slide clip" id="faltaria" data-composition-id="faltaria" data-label="Qué faltaría" data-start="112" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Conclusión · Valor y evidencia faltante</p>
+      <h2>El valor demostrado es la comparación, no un ahorro calculado.</h2>
+      <div class="compare"><article><h3>Lo que sí aporta</h3><p>Una referencia paralela, escenarios acotados y una regla para señalar cuándo revisar.</p><p>No es una alarma predictiva de falla: se activa al observar una separación.</p></article><article><h3>Lo que falta comprobar</h3><p>La causa del cambio, los costos locales y la validación de cualquier alternativa de monitoreo.</p><p>El archivo no contiene bitácora ni precios de calibración.</p></article></div>
+      <p class="explain reveal r1">Cambiar de algoritmo, por sí solo, no demuestra que pueda sustituirse el instrumento.</p>
+      <p class="foot"><span>Sin costos no hay retorno económico cuantificado</span><span>Sin bitácora no hay causa identificada</span></p>
+    </div>
+
+    <div class="slide clip" id="cierre" data-composition-id="cierre" data-label="Cierre" data-start="120" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Cierre · Del problema al hallazgo</p>
+      <h2>Los sensores mejoran la cuenta cuando la planta se parece.</h2>
+      <p class="lead reveal r1">No alcanzan para firmar los años siguientes.</p>
+      <p class="lead" style="margin-top:48px">El analizador permanece. El mapa es respaldo y alerta.</p>
+      <div class="source-links" aria-label="Fuentes del contexto y del estudio"><a href="https://www.epa.gov/no2-pollution/basic-information-about-no2" target="_blank" rel="noopener">NO₂ y salud · EPA ↗</a><a href="https://www.epa.gov/emc/emc-continuous-emission-monitoring-systems" target="_blank" rel="noopener">Monitoreo · EPA ↗</a><a href="https://www.energy.gov/hgeo/how-gas-turbine-power-plants-work" target="_blank" rel="noopener">Turbinas · DOE ↗</a><a href="https://doi.org/10.3906/elk-1807-87" target="_blank" rel="noopener">Datos · Kaya et al. ↗</a></div>
+      <p class="source-note">Contexto ambiental y técnico: EPA y DOE. Hallazgos: análisis de los archivos UCI. Las fuentes estadounidenses no establecen la normativa aplicable a esta planta.</p>
+      <p class="foot"><span>José Adrián Bazaldua Huerta · Sebastián de Jesús Enguilo Ruiz</span><span>27 de noviembre de 2026</span></p>
+    </div>
+
+    <div class="slide clip" id="pesos" data-composition-id="pesos" data-label="Pesos" data-start="128" data-duration="8" data-width="1920" data-height="1080">
+      <div class="bar"></div>
+      <p class="kicker">Si preguntan</p>
+      <h2>Los pesos no salen de una búsqueda sobre 2013.</h2>
+      <p class="lead">Son valores fijos del catálogo de modelos. No se documentó una optimización de los porcentajes: 60 % polinomio, 25 % bosque y 15 % Ridge.</p>
+      <p class="lead">En validación temporal dentro de 2011–2012, el híbrido obtuvo RMSE de 5.323 mg/m³ y el bosque, 6.139. Esa comparación evalúa la configuración; no demuestra que los pesos sean óptimos.</p>
+      <p class="explain">Dar más peso a una función polinómica tampoco garantiza estimaciones válidas fuera de las condiciones observadas.</p>
+      <button class="hot" type="button" id="close-detail">← Volver al mapa</button>
+      <p class="foot"><span>Anexo</span><span>Esc para volver</span></p>
+    </div>
+
+    <nav class="phase-nav" aria-label="Fases de la exposición"><span data-phase="Contexto">Contexto</span><span data-phase="Pregunta">Pregunta</span><span data-phase="Método">Método</span><span data-phase="Hallazgos">Hallazgos</span><span data-phase="Aplicación">Aplicación</span><span data-phase="Conclusión">Conclusión</span></nav>
+    <aside class="notes" id="notes" hidden aria-label="Notas del expositor"></aside>
+    <nav class="controls" aria-label="Controles de presentación">
+      <button id="prev" aria-label="Diapositiva anterior">←</button>
+      <span id="counter" aria-live="polite"></span>
+      <button id="next" aria-label="Avanzar o revelar contenido">→</button>
+      <button id="note-button" aria-label="Mostrar notas (N)">Notas</button>
+      <button id="motion-toggle" aria-label="Pausar animaciones" aria-pressed="false">Pausar</button>
+      <button id="fullscreen" aria-label="Pantalla completa (F)">⛶</button>
+    </nav>
+    <div id="progress" class="progress"></div>
+    <script>
+      const content = JSON.parse(document.getElementById('speaker-content').textContent);
+      const slides = content.slides.map(item => document.getElementById(item.sceneId));
+      const detail = document.getElementById('pesos');
+      let index = 0, step = 0, inDetail = false;
+      const notes = document.getElementById('notes');
+      const phases = {
+        portada:'Contexto',planta:'Contexto',nox:'Contexto',analizador:'Contexto',sinanalizador:'Contexto',
+        problema:'Pregunta',objetivo:'Pregunta',evaluado:'Método',entra:'Método',comparacion:'Método',mapa:'Método',errores:'Método',
+        y2013:'Hallazgos',fig2013:'Hallazgos',y2014:'Hallazgos',fig2014:'Hallazgos',medicion:'Hallazgos',sensores:'Hallazgos',
+        alarma:'Aplicación',simula:'Aplicación',decision:'Conclusión',faltaria:'Conclusión',cierre:'Conclusión'
+      };
+      function groups(slide) {
+        return ['r1','r2'].map(cls => [...slide.querySelectorAll('.'+cls)]).filter(items => items.length);
+      }
+      function paint() {
+        document.querySelectorAll('.slide').forEach(slide => {
+          const active = slide === (inDetail ? detail : slides[index]);
+          slide.classList.toggle('active', active);
+          slide.inert = !active;
+          slide.setAttribute('aria-hidden', String(!active));
+        });
+        groups(slides[index]).forEach((items, i) => items.forEach(item => item.classList.toggle('shown', i < step)));
+        document.body.classList.toggle('dark-slide', (inDetail ? detail : slides[index]).classList.contains('dark') || slides[index].id==='portada' && !inDetail);
+        document.querySelectorAll('[data-phase]').forEach(item=>{
+          const current=item.dataset.phase===phases[slides[index].id];
+          item.classList.toggle('current',current);
+          if(current) item.setAttribute('aria-current','step'); else item.removeAttribute('aria-current');
+        });
+        document.getElementById('counter').textContent = inDetail ? 'Anexo' : `${index+1} / ${slides.length}`;
+        document.getElementById('progress').style.width = `${(index+1)/slides.length*100}%`;
+        notes.textContent = inDetail ? content.slideSequences[0].slides[0].notes : content.slides[index].notes;
+        document.getElementById('prev').disabled = !inDetail && index===0 && step===0;
+        document.getElementById('next').disabled = !inDetail && index===slides.length-1 && step===groups(slides[index]).length;
+        if (!inDetail) history.replaceState(null,'','#'+slides[index].id);
+      }
+      function next() {
+        if (inDetail) { inDetail=false; paint(); return; }
+        if (step<groups(slides[index]).length) step++;
+        else if(index<slides.length-1) { index++; step=0; }
+        paint();
+      }
+      function prev() {
+        if(inDetail) inDetail=false;
+        else if(step>0) step--;
+        else if(index>0) { index--; step=groups(slides[index]).length; }
+        paint();
+      }
+      function fit() { document.documentElement.style.setProperty('--scale',Math.min(innerWidth/1920,innerHeight/1080)); }
+      function toggleNotes() { notes.hidden=!notes.hidden; }
+      function fullscreen() {
+        if(document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen().catch(()=>{});
+      }
+      document.getElementById('next').onclick=next;
+      document.getElementById('prev').onclick=prev;
+      document.getElementById('note-button').onclick=toggleNotes;
+      document.getElementById('fullscreen').onclick=fullscreen;
+      document.getElementById('motion-toggle').onclick=()=>{
+        const paused=document.body.classList.toggle('motion-paused');
+        const button=document.getElementById('motion-toggle');
+        button.textContent=paused?'Animar':'Pausar';
+        button.setAttribute('aria-pressed',String(paused));
+        button.setAttribute('aria-label',paused?'Reanudar animaciones':'Pausar animaciones');
+      };
+      document.getElementById('open-detail').onclick=()=>{ inDetail=true;paint(); };
+      document.getElementById('close-detail').onclick=()=>{inDetail=false;paint();};
+      document.addEventListener('keydown',event=>{
+        if(event.altKey||event.ctrlKey||event.metaKey) return;
+        if(['ArrowRight','ArrowDown',' ','PageDown'].includes(event.key)) {event.preventDefault();next();}
+        else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(event.key)) {event.preventDefault();prev();}
+        else if(event.key==='Escape') {inDetail=false;notes.hidden=true;paint();}
+        else if(event.key.toLowerCase()==='n') toggleNotes();
+        else if(event.key.toLowerCase()==='f') fullscreen();
+        else if(event.key==='Home') {index=0;step=0;inDetail=false;paint();}
+        else if(event.key==='End') {index=slides.length-1;step=groups(slides[index]).length;inDetail=false;paint();}
+      });
+      document.addEventListener('click',event=>{
+        if(!notes.hidden || event.target.closest('button,nav,a')) return;
+        next();
+      });
+      let touchX=0;
+      document.addEventListener('touchstart',event=>{touchX=event.changedTouches[0].clientX;},{passive:true});
+      document.addEventListener('touchend',event=>{
+        const delta=event.changedTouches[0].clientX-touchX;
+        if(Math.abs(delta)>60) delta<0?next():prev();
+      },{passive:true});
+      const initial=slides.findIndex(slide=>slide.id===location.hash.slice(1));
+      if(initial>=0) index=initial;
+      addEventListener('resize',fit);
+      fit();paint();
+    </script>
+  </body>
+</html>
